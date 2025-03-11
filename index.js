@@ -22,6 +22,13 @@ app.use(express.urlencoded({ extended: true}));
 app.use(express.json());
 app.use(session({secret: 'temporarypassword'}))
 
+// 로그인 세션이 있는지 확인하는 미들웨어
+const requireLogin = (req, res, next) => {
+    if (!req.session.user_id){
+        return res.redirect('/login')
+    }
+    next();
+}
 
 app.get('/', (req, res) => {
     res.send('This is home page!!!!')
@@ -66,10 +73,8 @@ app.post('/logout', (req, res)=> {
     res.redirect('/login');
 })
 
-app.get('/secret', (req, res) => {
-    if (!req.session.user_id){
-        return res.redirect('/login')
-    }
+// 로그인 미들웨어 적용
+app.get('/secret', requireLogin, (req, res) => {
     res.render('secret')
 })
 
