@@ -3,6 +3,8 @@ const app = express();
 const User = require('./models/user');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const session = require('express-session');
+
 
 mongoose.connect('mongodb://localhost:27017/authDemo')
 .then(() => {
@@ -18,6 +20,8 @@ app.set('views', 'views');
 
 app.use(express.urlencoded({ extended: true}));
 app.use(express.json());
+app.use(session({secret: 'temporarypassword'}))
+
 
 app.get('/', (req, res) => {
     res.send('This is home page!!!!')
@@ -35,6 +39,7 @@ app.post('/register', async (req, res) => {
         password: hash,
     })
     await user.save()
+    req.session.user_id = user._id;
     res.redirect('/');
 })
 
@@ -47,15 +52,25 @@ app.post('/login', async (req, res) => {
     const user = await User.findOne({ username });
     const validPassword = await bcrypt.compare( password, user.password )
     if (validPassword) {
-        res.send('login')
+        req.session.user_id = user._id;
+        res.redirect('/secret')
     }
     else{
-        res.send('Fail')
+        res.redirect('/login')
     }
 })
 
-app.get('/secrets', (req, res) => {
-    res.send('Here we go!')
+app.post('/logout', (req, res)=> {
+    req.session.user_id = null;
+    // req.session.destroy(); 으로도 사용 가능(session는 요청 객체에 존재)
+    res.redirect('/login');
+})
+
+app.get('/secret', (req, res) => {
+    if (!req.session.user_id){
+        return res.redirect('/login')
+    }
+    res.render('secret')
 })
 
 app.listen(3000,() => {
